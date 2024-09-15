@@ -26,9 +26,11 @@ def data():
         dest = request.form["destination"]
         # from here we can feed these two variables to the download function
         filename = use_pytubefix(url)
+        dest = dest + filename  # update destination to full path
         use_ffmpeg(filename)
         cleanup_sort(filename, dest)
 
+        #return render_template("form.html")
         return render_template("data.html", form_data=form_data)
 
 
@@ -56,7 +58,7 @@ def use_pytubefix(u):
 
 
 def use_ffmpeg(f):
-    run(["ffmpeg", "-i", "video.mp4", "-i", "audio.mp4", "-c", "copy", f], check=False)
+    run(["ffmpeg", "-y", "-i", "video.mp4", "-i", "audio.mp4", "-c", "copy", f], check=False)
 
 
 def cleanup_sort(f, d):
