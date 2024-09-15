@@ -6,3 +6,5 @@
 
 ### To run:
 `flask --app jellyfin-downloader run`
+or
+`gunicorn -w 4 jellyfin-downloader:app`
