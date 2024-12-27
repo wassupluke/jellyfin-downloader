@@ -1,10 +1,14 @@
-# jellyfin-downloader
+# Luke's Media Downloader
 
-### Notes for use:
-- The templates/form.html contains hardcoded links to the directories into which downloaded files should be organized. Please review to ensure they match your organization structure.
-- Ensure the ffmpeg package is installed on your system (e.g., via something like pacman or apt, not pip)
+## USAGE
+I recommend running this in tmux so you can detach the session
+```bash
+$ tmux
+$ python app.py
+```
+tmux detach: `Ctrl+b d`
+tmux attach: `tmux a`
+<em>This lets you see the console output from the program if something went wrong</em>
 
-### To run:
-`flask --app jellyfin-downloader run`
-or
-`gunicorn -w 4 jellyfin-downloader:app`
+## Notes
+This runs a simple url input page on port 5000 at the IP of the device running the script (e.g., 192.168.1.134:5000)
