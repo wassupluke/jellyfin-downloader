@@ -6,6 +6,7 @@ I recommend running this in tmux so you can detach the session
 python -m venv .venv
 pip install -r requirements.txt
 tmux
+source .venv/bin/activate
 python app.py
 ```
 tmux detach: `Ctrl+b d`
