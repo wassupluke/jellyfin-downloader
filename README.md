@@ -3,8 +3,10 @@
 ## USAGE
 I recommend running this in tmux so you can detach the session
 ```bash
-$ tmux
-$ python app.py
+python -m venv .venv
+pip install -r requirements.txt
+tmux
+python app.py
 ```
 tmux detach: `Ctrl+b d`
 tmux attach: `tmux a`
