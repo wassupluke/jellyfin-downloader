@@ -1,14 +1,12 @@
 services:
   flask_app:
     build: .
+    user: "1000:1000"
     ports:
       - "5000:5000"
     volumes:
       - type: bind
-        source: .
-        target: /app
-      - type: bind
-        source: /media/devmon/digital_media
-        target: /media/devmon/digital_media
+        source: /mnt/ceph-videos
+        target: /mnt/ceph-videos
     restart:
       unless-stopped
