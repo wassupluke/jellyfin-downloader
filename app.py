@@ -8,8 +8,15 @@ app = Flask(__name__)
 def download():
     if request.method == "POST":
         url = request.form["url"]
-        os.system(f"yt-dlp {url} --config-locations yt-dlp.conf")
-        return "Download complete!"
+        exit_code = os.system(f"yt-dlp {url} --config-locations yt-dlp.conf")
+
+        if exit_code == 0:
+            status = "✅ Download complete!"
+        else:
+            status = "❌ Download failed. Please check the URL or try again."
+
+        return render_template("result.html", status=status)
+
     return render_template("download.html")
 
 
