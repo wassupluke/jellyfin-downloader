@@ -6,7 +6,7 @@ services:
       - "5000:5000"
     volumes:
       - type: bind
-        source: /mnt/ceph-videos
-        target: /mnt/ceph-videos
+        source: /home/wassu/my-ceph-nas/Videos/jellyfin-videos/YouTube
+        target: /home/wassu/my-ceph-nas/Videos/jellyfin-videos/YouTube
     restart:
       unless-stopped
