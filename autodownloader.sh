@@ -4,7 +4,7 @@
 set -e
 
 # SET PLAYLIST URL
-PLAYLIST_URL="https://www.youtube.com/watch?v=DYDtrq5ykHg&list=PLXEMPXZ3PY1iF-PYG6aslYgw_ainwQDhN"
+PLAYLIST_URL="https://www.youtube.com/playlist?list=PLXEMPXZ3PY1h3rfOeGdQS0MmmzqvE_k8E"
 
 # Defaults
 DAYS="1"
@@ -16,6 +16,7 @@ echo "[INFO] Downloading videos from the last $DAYS day(s)..."
 
 # Run yt-dlp
 ~/.local/bin/yt-dlp \
+  --download-archive "download-archive.txt" \
   --dateafter "now-${DAYS}days" \
   --match-title "${MATCH_TITLE}" \
   --write-thumbnail \

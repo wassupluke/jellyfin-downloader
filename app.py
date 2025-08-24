@@ -8,10 +8,16 @@ app = Flask(__name__)
 def download():
     if request.method == "POST":
         url = request.form["url"]
-        exit_code = os.system(f"yt-dlp {url} --config-locations yt-dlp.conf")
+        exit_code = os.system(f"yt-dlp {url}")
 
         if exit_code == 0:
             status = "✅ Download complete!"
+            os.system(
+                    'curl -H "X-MediaBrowser-Token: 17ff6890cbfe4a95899120a1bf06ff8c" '
+                    '-H "Content-Type: application/json" '
+                    '-d \'{{"Updates": [{{"Path":"/mnt/ceph-videos/YouTube/","UpdateType":"scan"}}]}}\' '
+                    'http://192.168.5.39:8096/Library/Media/Updated'
+                    )
         else:
             status = "❌ Download failed. Please check the URL or try again."
 

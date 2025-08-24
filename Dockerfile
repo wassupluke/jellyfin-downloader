@@ -1,11 +1,11 @@
 # Use an official Python image as base
-FROM python:3.13
+FROM python:3.13-slim
 
 # Set the working directory
 WORKDIR /app
 
 # Copy the requirements file and install dependencies
-RUN apt update && apt install -y ffmpeg && apt clean
+RUN apt update && apt install -y ffmpeg curl && apt clean
 
 # Create a safe cache directory for yt-dlp
 RUN mkdir -p /app/cache && chown -R 1000:1000 /app/cache
@@ -15,8 +15,8 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy autodownloader script
-COPY autodownloader.sh /app/autodownloader.sh
-RUN chmod +x /app/autodownloader.sh
+#COPY autodownloader.sh /app/autodownloader.sh
+#RUN chmod +x /app/autodownloader.sh
 
 # Copy the rest of the application files
 COPY . .

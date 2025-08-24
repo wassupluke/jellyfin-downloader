@@ -4,9 +4,11 @@ services:
     user: "1000:1000"
     ports:
       - "5000:5000"
+    environment:
+      - XDG_CACHE_HOME=/tmp/.cache
     volumes:
       - type: bind
-        source: /home/wassu/my-ceph-nas/Videos/jellyfin-videos/YouTube
-        target: /home/wassu/my-ceph-nas/Videos/jellyfin-videos/YouTube
+        source: /mnt/ceph-videos/YouTube
+        target: /mnt/ceph-videos/YouTube
     restart:
       unless-stopped
