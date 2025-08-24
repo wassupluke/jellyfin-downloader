@@ -11,6 +11,7 @@ DAYS="1"
 MATCH_TITLE=".*Vuelta a España 2025.*EXTENDED HIGHLIGHTS.*" # regex
 OUTPUT_DIR="/mnt/ceph-videos/YouTube"
 
+date
 echo "[INFO] Starting download for playlist: $PLAYLIST_URL"
 echo "[INFO] Downloading videos from the last $DAYS day(s)..."
 
