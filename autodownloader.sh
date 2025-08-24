@@ -15,7 +15,7 @@ echo "[INFO] Starting download for playlist: $PLAYLIST_URL"
 echo "[INFO] Downloading videos from the last $DAYS day(s)..."
 
 # Run yt-dlp
-/usr/local/bin/yt-dlp \
+~/.local/bin/yt-dlp \
   --dateafter "now-${DAYS}days" \
   --match-title "${MATCH_TITLE}" \
   --write-thumbnail \
