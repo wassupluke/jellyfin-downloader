@@ -3,11 +3,13 @@
 # Exit on error
 set -e
 
+# SET PLAYLIST URL
+PLAYLIST_URL="https://www.youtube.com/watch?v=DYDtrq5ykHg&list=PLXEMPXZ3PY1iF-PYG6aslYgw_ainwQDhN"
+
 # Defaults
 DAYS="1"
-MATCH_TITLE=".*EXTENDED HIGHLIGHTS.*" # regex
-OUTPUT_DIR="/home/wassu/my-ceph-nas/Videos/jellyfin-videos/YouTube"
-PLAYLIST_URL="https://www.youtube.com/watch?v=DYDtrq5ykHg&list=PLXEMPXZ3PY1iF-PYG6aslYgw_ainwQDhN"
+MATCH_TITLE=".*Vuelta a España 2025.*EXTENDED HIGHLIGHTS.*" # regex
+OUTPUT_DIR="/mnt/ceph-videos/YouTube"
 
 echo "[INFO] Starting download for playlist: $PLAYLIST_URL"
 echo "[INFO] Downloading videos from the last $DAYS day(s)..."
