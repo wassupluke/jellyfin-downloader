@@ -16,6 +16,9 @@ echo "[INFO] Starting download for playlist: $PLAYLIST_URL"
 echo "[INFO] Downloading videos from the last $DAYS day(s)..."
 
 # Run yt-dlp
+# NOTE: this is the specific config for the autodownloader for use
+# with playlist automated downloading. The downloader at jellyfin:5000
+# has a separate, manually configured set of options in yt-dlp.conf.
 ~/.local/bin/yt-dlp \
   --download-archive "download-archive.txt" \
   --dateafter "now-${DAYS}days" \
