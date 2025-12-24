@@ -12,7 +12,7 @@ RUN mkdir -p /app/cache && chown -R 1000:1000 /app/cache
 
 # Copy Python dependencies and install them
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -U --no-cache-dir -r requirements.txt
 
 # Copy autodownloader script
 #COPY autodownloader.sh /app/autodownloader.sh
