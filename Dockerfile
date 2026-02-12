@@ -14,10 +14,6 @@ RUN mkdir -p /app/cache && chown -R 1000:1000 /app/cache
 COPY requirements.txt ./
 RUN pip install -U --no-cache-dir -r requirements.txt
 
-# Copy autodownloader script
-#COPY autodownloader.sh /app/autodownloader.sh
-#RUN chmod +x /app/autodownloader.sh
-
 # Copy the rest of the application files
 COPY . .
 
