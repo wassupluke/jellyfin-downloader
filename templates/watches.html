@@ -30,7 +30,7 @@
                 <span class="badge badge-orange">Outside Window</span>
             {% endif %}
         </td>
-        <td style="font-size:0.85rem">{{ w.last_run or 'Never' }}</td>
+        <td style="font-size:0.85rem" class="local-time" data-utc="{{ w.last_run or '' }}">{{ w.last_run or 'Never' }}</td>
         <td>
             <div class="actions">
                 <a class="btn btn-blue btn-sm" href="/watches/{{ w.id }}/edit">Edit</a>
@@ -49,4 +49,15 @@
 {% else %}
 <p style="color:#888;margin-top:20px">No watches configured yet. Add one to start monitoring a playlist.</p>
 {% endif %}
+
+<script>
+document.querySelectorAll('.local-time').forEach(el => {
+    const utc = el.dataset.utc;
+    if (!utc) return;
+    try {
+        const d = new Date(utc.includes('T') || utc.includes('Z') ? utc : utc + 'Z');
+        if (!isNaN(d)) el.textContent = d.toLocaleString();
+    } catch(e) {}
+});
+</script>
 {% endblock %}
