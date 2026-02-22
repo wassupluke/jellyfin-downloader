@@ -1,50 +1,42 @@
 # Luke's Media Downloader
 
-This runs a simple url input page on port 5000 at the IP of the device running the script.
+YouTube video downloader with Jellyfin media server integration. Runs a web UI on port 5000 with two features:
 
-## Usage
+- **Manual Download** — paste a YouTube URL to download it immediately
+- **Playlist Watches** — configure playlists to be monitored automatically on a schedule, with title filtering and date windows
 
-0. Place the following line in a file called `.env`
-> `JELLYFIN_TOKEN=<your_api_token_here>`
-> optionally secure the .env file on your system with `chmod 0600 .env`
-1. `docker compose build && docker compose up -d`
-2. Navigate to <ip>:5000 (where <ip> is the local IP address or hostname of the machine running the docker container).
+After each download, a Jellyfin library scan is triggered automatically.
 
-## Scheduling the autodownloader.sh
+## Setup
 
-`crontab -e`
+1. Create a `.env` file with your Jellyfin API key:
+   ```
+   JELLYFIN_TOKEN=<your_api_token_here>
+   ```
+   Optionally secure it with `chmod 0600 .env`
 
-**Example:**
+2. Build and run:
+   ```bash
+   docker compose build && docker compose up -d
+   ```
 
-Runs the script six times at minute 0 and 30 past hours 19, 20, and 21 (check what timezone the system is using with `date`).
+3. Navigate to `http://<ip>:5000`
 
-```bash
-0,30 19,20,21 * * * docker exec jellyfin-downloader-flask_app-1 /app/autodownloader.sh  >> /root/jellyfin-downloader/logs/autodownloader.log 2>&1
-```
+## Playlist Watches
 
-```bash
-# Edit this file to introduce tasks to be run by cron.
-#
-# Each task to run has to be defined through a single line
-# indicating with different fields when the task will be run
-# and what command to run for the task
-#
-# To define the time you can provide concrete values for
-# minute (m), hour (h), day of month (dom), month (mon),
-# and day of week (dow) or use '*' in these fields (for 'any').
-#
-# Notice that tasks will be started based on the cron's system
-# daemon's notion of time and timezones.
-#
-# Output of the crontab jobs (including errors) is sent through
-# email to the user the crontab file belongs to (unless redirected).
-#
-# For example, you can run a backup of all your user accounts
-# at 5 a.m every week with:
-# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
-#
-# For more information see the manual pages of crontab(5) and cron(8)
-#
-# m h  dom mon dow   command
-0,30 12,13,14,15,16,17 * * * /home/wassu/code/jellyfin-downloader/autodownloader.sh > /home/wassu/code/jellyfin-downloader/autodownloader.logs 2>&1
-```
+Go to the **Playlist Watches** tab in the web UI to add monitored playlists. Each watch has:
+
+- **Playlist URL** — the YouTube playlist to monitor
+- **Title must contain** — only download videos whose title contains this text (leave blank for all)
+- **Start / End Date** — active date window for monitoring
+- **Check interval** — how often to check for new videos (1h–12h)
+
+The built-in scheduler checks every 5 minutes and runs any watches that are due. Each watch maintains its own download archive to avoid re-downloading videos.
+
+Watch data is stored in `watches.json` and download archives in `archives/`, both volume-mounted for persistence across container rebuilds.
+
+## Configuration
+
+- `yt-dlp.conf` — yt-dlp options for manual downloads (format, metadata, subtitles, etc.)
+- Jellyfin URL and output path are configured in `app.py`
+- Playlist watches use their own yt-dlp flags (configured in code, matching the manual download options)

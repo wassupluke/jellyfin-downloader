@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% set active_page = 'watches' %}
+{% block title %}Playlist Watches{% endblock %}
+{% block content %}
+<h1>Playlist Watches</h1>
+<a class="btn" href="/watches/add" style="margin-bottom:15px">+ Add Watch</a>
+
+{% if watches %}
+<table>
+    <tr>
+        <th>Name</th>
+        <th>Window</th>
+        <th>Status</th>
+        <th>Last Run</th>
+        <th>Actions</th>
+    </tr>
+    {% for w in watches %}
+    <tr>
+        <td>
+            <strong>{{ w.name }}</strong><br>
+            <span style="font-size:0.8rem;color:#888">{{ w.title_filter or 'any title' }}</span>
+        </td>
+        <td style="font-size:0.85rem">{{ w.start_date }} &rarr; {{ w.end_date }}<br>every {{ w.interval_hours }}h</td>
+        <td>
+            {% if not w.enabled %}
+                <span class="badge badge-gray">Disabled</span>
+            {% elif w._active %}
+                <span class="badge badge-green">Active</span>
+            {% else %}
+                <span class="badge badge-orange">Outside Window</span>
+            {% endif %}
+        </td>
+        <td style="font-size:0.85rem">{{ w.last_run or 'Never' }}</td>
+        <td>
+            <div class="actions">
+                <a class="btn btn-blue btn-sm" href="/watches/{{ w.id }}/edit">Edit</a>
+                <form method="POST" action="/watches/{{ w.id }}/run" style="margin:0">
+                    <button class="btn btn-sm" type="submit">Run</button>
+                </form>
+                <form method="POST" action="/watches/{{ w.id }}/delete" style="margin:0"
+                      onsubmit="return confirm('Delete this watch?')">
+                    <button class="btn btn-danger btn-sm" type="submit">Del</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p style="color:#888;margin-top:20px">No watches configured yet. Add one to start monitoring a playlist.</p>
+{% endif %}
+{% endblock %}

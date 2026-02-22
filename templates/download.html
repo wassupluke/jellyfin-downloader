@@ -1,75 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download YouTube Video</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #f0f0f0, #c0c0f0);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .form-container {
-            background: #fff;
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            color: #333;
-            margin-bottom: 1rem;
-        }
-
-        label {
-            font-size: 1rem;
-            color: #555;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            font-size: 1rem;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        input[type="submit"] {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        input[type="submit"]:hover {
-            background: #45a049;
-        }
-    </style>
-</head>
-<body>
-    <div class="form-container">
-        <h1>Download YouTube Video</h1>
-        <form method="POST">
-            <label for="url">Enter the YouTube video URL:</label>
-            <input type="text" name="url" id="url" placeholder="https://www.youtube.com/watch?v=...">
-            <input type="submit" value="Download">
-        </form>
-    </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% set active_page = 'download' %}
+{% block title %}Download YouTube Video{% endblock %}
+{% block content %}
+<h1>Download YouTube Video</h1>
+<form method="POST">
+    <label for="url">Enter the YouTube video URL:</label>
+    <input type="text" name="url" id="url" placeholder="https://www.youtube.com/watch?v=..." required>
+    <input type="submit" class="btn" value="Download">
+</form>
+{% endblock %}

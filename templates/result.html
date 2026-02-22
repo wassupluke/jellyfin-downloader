@@ -1,52 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Download Status</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #f9f9f9, #dfe9f3);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .result-container {
-            background: #fff;
-            padding: 30px 40px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .status {
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-        }
-
-        a.button {
-            display: inline-block;
-            background: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            font-size: 1rem;
-            border-radius: 4px;
-            transition: background 0.3s ease;
-        }
-
-        a.button:hover {
-            background: #45a049;
-        }
-    </style>
-</head>
-<body>
-    <div class="result-container">
-        <div class="status">{{ status }}</div>
-        <a class="button" href="/">Download Another Video</a>
-    </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% set active_page = 'download' %}
+{% block title %}Download Status{% endblock %}
+{% block content %}
+<div style="text-align:center">
+    <div style="font-size:1.3rem; margin-bottom:20px">{{ status }}</div>
+    <a class="btn" href="/">Download Another Video</a>
+</div>
+{% endblock %}
