@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% set active_page = 'download' %}
+{% block title %}Downloading…{% endblock %}
+{% block content %}
+<h1 id="heading">Downloading…</h1>
+<p id="title" style="color:#555; margin-bottom:15px; min-height:1.2em;"></p>
+
+<div style="background:#e0e0e0; border-radius:6px; overflow:hidden; height:28px; margin-bottom:15px;">
+    <div id="bar" style="height:100%; width:0%; background:#4CAF50; transition:width 0.3s ease; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.85rem; min-width:2em;">
+        0%
+    </div>
+</div>
+
+<pre id="log" style="background:#1e1e1e; color:#ccc; padding:12px; border-radius:6px; font-size:0.82rem; line-height:1.5; min-height:4.5em; overflow-x:auto; white-space:pre-wrap; word-break:break-all;"></pre>
+
+<div id="result" style="text-align:center; margin-top:20px; display:none;">
+    <div id="result-msg" style="font-size:1.3rem; margin-bottom:15px;"></div>
+    <a class="btn" href="/">Download Another Video</a>
+</div>
+
+<p style="color:#888; font-size:0.85rem; margin-top:15px;">You can close this tab — the download will continue in the background.</p>
+
+<script>
+(function() {
+    const es = new EventSource("/progress/{{ job_id }}/stream");
+    const bar = document.getElementById("bar");
+    const log = document.getElementById("log");
+    const heading = document.getElementById("heading");
+    const titleEl = document.getElementById("title");
+    const result = document.getElementById("result");
+    const resultMsg = document.getElementById("result-msg");
+
+    es.onmessage = function(e) {
+        const d = JSON.parse(e.data);
+        const pct = Math.round(d.progress) + "%";
+        bar.style.width = pct;
+        bar.textContent = pct;
+        log.textContent = d.log.join("\n");
+        if (d.title) titleEl.textContent = d.title;
+
+        if (d.status === "done") {
+            heading.textContent = "Download Complete";
+            bar.style.background = "#4CAF50";
+            resultMsg.textContent = "✅ Download complete!";
+            result.style.display = "block";
+            es.close();
+        } else if (d.status === "error") {
+            heading.textContent = "Download Failed";
+            bar.style.background = "#e53935";
+            resultMsg.textContent = "❌ Download failed. Check the URL or try again.";
+            result.style.display = "block";
+            es.close();
+        }
+    };
+
+    es.onerror = function() { es.close(); };
+})();
+</script>
+{% endblock %}

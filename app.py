@@ -1,13 +1,15 @@
 import json
 import os
+import re
 import subprocess
 import threading
 import time
 import uuid
+from collections import deque
 from datetime import date, datetime
 
 import requests
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, Response, redirect, render_template, request, url_for
 
 app = Flask(__name__)
 
@@ -17,6 +19,14 @@ YOUTUBE_PATH = "/mnt/ceph-videos/YouTube/"
 WATCHES_FILE = "/app/watches.json"
 ARCHIVES_DIR = "/app/archives"
 WATCHES_LOCK = threading.Lock()
+
+# ── Download job tracking ──────────────────────────────────────
+# Jobs persist in memory; keyed by job_id string.
+# Each job: {"status": "running"|"done"|"error", "progress": 0-100,
+#            "log": deque(maxlen=50), "title": str}
+
+_jobs = {}
+_jobs_lock = threading.Lock()
 
 # ── Shared helpers ──────────────────────────────────────────────
 
@@ -83,23 +93,101 @@ def find_watch(watches, watch_id):
     return next((w for w in watches if w["id"] == watch_id), None)
 
 
+# ── Background download helpers ────────────────────────────────
+
+_PROGRESS_RE = re.compile(r"\[download\]\s+([\d.]+)%")
+
+
+def _parse_progress(line):
+    """Extract download percentage from a yt-dlp output line."""
+    m = _PROGRESS_RE.search(line)
+    return float(m.group(1)) if m else None
+
+
+def _run_download_job(job_id, url):
+    """Run yt-dlp in background, updating job state as output arrives."""
+    job = _jobs[job_id]
+    cmd = ["yt-dlp", "--newline", "--config-locations", "/app/yt-dlp.conf", url]
+    print(f"[yt-dlp] job {job_id}: {' '.join(cmd)}", flush=True)
+
+    try:
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1,
+        )
+        for line in proc.stdout:
+            line = line.rstrip("\n")
+            job["log"].append(line)
+            pct = _parse_progress(line)
+            if pct is not None:
+                job["progress"] = pct
+            # Try to grab title from metadata
+            if line.startswith("[info]") and ":" in line and not job["title"]:
+                job["title"] = line.split(":", 1)[1].strip()[:120]
+        proc.wait()
+        if proc.returncode == 0:
+            job["status"] = "done"
+            job["progress"] = 100
+            trigger_jellyfin_scan()
+        else:
+            job["status"] = "error"
+    except Exception as e:
+        job["log"].append(f"ERROR: {e}")
+        job["status"] = "error"
+
+
 # ── Manual download routes ──────────────────────────────────────
 
 @app.route("/", methods=["GET", "POST"])
 def download():
     if request.method == "POST":
         url = request.form["url"]
-        success = run_ytdlp(url, ["--config-locations", "/app/yt-dlp.conf"])
-
-        if success:
-            status = "✅ Download complete!"
-            trigger_jellyfin_scan()
-        else:
-            status = "❌ Download failed. Please check the URL or try again."
-
-        return render_template("result.html", status=status)
+        job_id = str(uuid.uuid4())
+        _jobs[job_id] = {
+            "status": "running",
+            "progress": 0,
+            "log": deque(maxlen=50),
+            "title": "",
+        }
+        t = threading.Thread(target=_run_download_job, args=(job_id, url), daemon=True)
+        t.start()
+        return redirect(url_for("download_progress", job_id=job_id))
 
     return render_template("download.html")
+
+
+@app.route("/progress/<job_id>")
+def download_progress(job_id):
+    if job_id not in _jobs:
+        return redirect(url_for("download"))
+    return render_template("progress.html", job_id=job_id)
+
+
+@app.route("/progress/<job_id>/stream")
+def progress_stream(job_id):
+    """SSE endpoint that pushes job progress updates to the browser."""
+    def generate():
+        if job_id not in _jobs:
+            yield f"data: {json.dumps({'status': 'error', 'progress': 0, 'log': [], 'title': ''})}\n\n"
+            return
+        job = _jobs[job_id]
+        last_sent = None
+        while True:
+            snapshot = json.dumps({
+                "status": job["status"],
+                "progress": job["progress"],
+                "log": list(job["log"])[-3:],
+                "title": job["title"],
+            })
+            if snapshot != last_sent:
+                yield f"data: {snapshot}\n\n"
+                last_sent = snapshot
+            if job["status"] in ("done", "error"):
+                break
+            time.sleep(0.5)
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ── Watch CRUD routes ───────────────────────────────────────────
