@@ -16,6 +16,7 @@ JELLYFIN_URL = "http://192.168.5.39:8096"
 YOUTUBE_PATH = "/mnt/ceph-videos/YouTube/"
 WATCHES_FILE = "/app/watches.json"
 ARCHIVES_DIR = "/app/archives"
+WATCHES_LOCK = threading.Lock()
 
 # ── Shared helpers ──────────────────────────────────────────────
 
@@ -23,7 +24,7 @@ def run_ytdlp(url, extra_args=None):
     """Run yt-dlp with given URL and optional extra args. Returns True on success."""
     cmd = ["yt-dlp"] + (extra_args or []) + [url]
     print(f"[yt-dlp] {' '.join(cmd)}", flush=True)
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, shell=False)  # noqa: S603
     return result.returncode == 0
 
 
@@ -56,18 +57,24 @@ def trigger_jellyfin_scan():
 # ── Watches persistence ─────────────────────────────────────────
 
 def load_watches():
-    if not os.path.isfile(WATCHES_FILE):
-        save_watches([])
-        return []
-    try:
-        with open(WATCHES_FILE) as f:
-            content = f.read().strip()
-            return json.loads(content) if content else []
-    except (json.JSONDecodeError, OSError):
-        return []
+    with WATCHES_LOCK:
+        if not os.path.isfile(WATCHES_FILE):
+            _save_watches_unlocked([])
+            return []
+        try:
+            with open(WATCHES_FILE) as f:
+                content = f.read().strip()
+                return json.loads(content) if content else []
+        except (json.JSONDecodeError, OSError):
+            return []
 
 
 def save_watches(watches):
+    with WATCHES_LOCK:
+        _save_watches_unlocked(watches)
+
+
+def _save_watches_unlocked(watches):
     with open(WATCHES_FILE, "w") as f:
         json.dump(watches, f, indent=2)
 
@@ -221,9 +228,14 @@ def _scheduler_loop():
 
                 last_run = watch.get("last_run")
                 if last_run:
-                    elapsed = (now - datetime.fromisoformat(last_run)).total_seconds() / 3600
-                    if elapsed < watch.get("interval_hours", 4):
-                        continue
+                    try:
+                        last_run_dt = datetime.fromisoformat(last_run)
+                    except (TypeError, ValueError):
+                        last_run_dt = None
+                    if last_run_dt is not None:
+                        elapsed = (now - last_run_dt).total_seconds() / 3600
+                        if elapsed < watch.get("interval_hours", 4):
+                            continue
 
                 _run_watch(watch)
                 watch["last_run"] = now.isoformat(timespec="seconds")
