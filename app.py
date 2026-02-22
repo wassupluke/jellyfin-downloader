@@ -6,7 +6,7 @@ import threading
 import time
 import uuid
 from collections import deque
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import requests
 from flask import Flask, Response, redirect, render_template, request, url_for
@@ -243,7 +243,7 @@ def watches_run(watch_id):
     watch = find_watch(watches, watch_id)
     if watch:
         _run_watch(watch)
-        watch["last_run"] = datetime.now().isoformat(timespec="seconds")
+        watch["last_run"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         save_watches(watches)
     return redirect(url_for("watches_list"))
 
