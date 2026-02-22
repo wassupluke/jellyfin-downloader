@@ -56,10 +56,15 @@ def trigger_jellyfin_scan():
 # ── Watches persistence ─────────────────────────────────────────
 
 def load_watches():
-    if not os.path.exists(WATCHES_FILE):
+    if not os.path.isfile(WATCHES_FILE):
+        save_watches([])
         return []
-    with open(WATCHES_FILE) as f:
-        return json.load(f)
+    try:
+        with open(WATCHES_FILE) as f:
+            content = f.read().strip()
+            return json.loads(content) if content else []
+    except (json.JSONDecodeError, OSError):
+        return []
 
 
 def save_watches(watches):
