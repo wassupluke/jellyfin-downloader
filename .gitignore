@@ -2,3 +2,5 @@
 .venv
 venv
 download-archive.txt
+archives/*.txt
+watches.json

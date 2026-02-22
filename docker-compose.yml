@@ -15,5 +15,7 @@ services:
       - type: bind
         source: /home/wassu/jellyfin-downloader/download-archive.txt
         target: /app/download-archive.txt
+      - ./watches.json:/app/watches.json
+      - ./archives:/app/archives
     restart:
       unless-stopped

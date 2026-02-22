@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% set active_page = 'watches' %}
+{% block title %}{{ 'Edit' if watch else 'Add' }} Watch{% endblock %}
+{% block content %}
+<h1>{{ 'Edit' if watch else 'Add' }} Playlist Watch</h1>
+<form method="POST">
+    <label for="name">Name</label>
+    <input type="text" name="name" id="name" placeholder="Tour de France 2025 Highlights"
+           value="{{ watch.name if watch else '' }}" required>
+
+    <label for="playlist_url">Playlist URL</label>
+    <input type="url" name="playlist_url" id="playlist_url"
+           placeholder="https://www.youtube.com/playlist?list=..."
+           value="{{ watch.playlist_url if watch else '' }}" required>
+
+    <label for="title_filter">Title must contain</label>
+    <input type="text" name="title_filter" id="title_filter"
+           placeholder="extended highlights"
+           value="{{ watch.title_filter if watch else '' }}">
+    <p class="helper">Leave blank to download all videos. Examples: "extended highlights", "race recap"</p>
+
+    <label for="start_date">Start Date</label>
+    <input type="date" name="start_date" id="start_date"
+           value="{{ watch.start_date if watch else '' }}" required>
+
+    <label for="end_date">End Date</label>
+    <input type="date" name="end_date" id="end_date"
+           value="{{ watch.end_date if watch else '' }}" required>
+
+    <label for="interval_hours">Check Every</label>
+    <select name="interval_hours" id="interval_hours">
+        {% for h in [1, 2, 4, 6, 12] %}
+        <option value="{{ h }}" {% if watch and watch.interval_hours == h %}selected{% endif %}>
+            {{ h }} hour{{ 's' if h != 1 else '' }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:15px">
+        <input type="checkbox" name="enabled" {% if not watch or watch.enabled %}checked{% endif %}>
+        Enabled
+    </label>
+
+    <input type="submit" class="btn" value="Save">
+    <a href="/watches" style="margin-left:10px;color:#555">Cancel</a>
+</form>
+{% endblock %}
