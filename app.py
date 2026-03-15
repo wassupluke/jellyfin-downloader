@@ -281,6 +281,7 @@ def _run_watch(watch):
         "--embed-thumbnail",
         "--embed-subs",
         "--sub-langs", "en,en-US",
+        "--remote-components", "ejs:github",
         "--ignore-errors",
         "--no-overwrites",
         "--output", f"{YOUTUBE_PATH}%(uploader)s/%(playlist_title)s/%(title)s.%(ext)s",
