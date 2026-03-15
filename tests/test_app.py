@@ -154,7 +154,7 @@ class TestSchedulerLogic:
     def _run_one_cycle(self, watches):
         """Simulate one scheduler cycle, return list of watch names that would run."""
         ran = []
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         today = "2026-02-22"
 
         for watch in watches:
@@ -169,6 +169,8 @@ class TestSchedulerLogic:
                 except (TypeError, ValueError):
                     last_run_dt = None
                 if last_run_dt is not None:
+                    if last_run_dt.tzinfo is None:
+                        last_run_dt = last_run_dt.astimezone(timezone.utc)
                     elapsed = (now - last_run_dt).total_seconds() / 3600
                     if elapsed < watch.get("interval_hours", 4):
                         continue
@@ -185,7 +187,7 @@ class TestSchedulerLogic:
         assert self._run_one_cycle([sample_watch]) == []
 
     def test_skips_within_cooldown(self, sample_watch):
-        sample_watch["last_run"] = datetime.now().isoformat(timespec="seconds")
+        sample_watch["last_run"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         assert self._run_one_cycle([sample_watch]) == []
 
     def test_runs_eligible(self, sample_watch):

@@ -16,7 +16,7 @@ app = Flask(__name__)
 JELLYFIN_TOKEN = os.environ.get("JELLYFIN_TOKEN")
 JELLYFIN_URL = "http://192.168.5.39:8096"
 YOUTUBE_PATH = "/mnt/ceph-videos/YouTube/"
-WATCHES_FILE = "/app/watches.json"
+WATCHES_FILE = "/app/data/watches.json"
 ARCHIVES_DIR = "/app/archives"
 WATCHES_LOCK = threading.Lock()
 
@@ -304,8 +304,8 @@ def _scheduler_loop():
         time.sleep(300)  # check every 5 minutes
         try:
             watches = load_watches()
-            now = datetime.now()
-            today = date.today().isoformat()
+            now = datetime.now(timezone.utc)
+            today = now.date().isoformat()
             changed = False
 
             for watch in watches:
@@ -318,6 +318,8 @@ def _scheduler_loop():
                 if last_run:
                     try:
                         last_run_dt = datetime.fromisoformat(last_run)
+                        if last_run_dt.tzinfo is None:
+                            last_run_dt = last_run_dt.astimezone(timezone.utc)
                     except (TypeError, ValueError):
                         last_run_dt = None
                     if last_run_dt is not None:
@@ -333,7 +335,8 @@ def _scheduler_loop():
                 save_watches(watches)
 
         except Exception as e:
-            print(f"[scheduler] error: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
 
 
 def start_scheduler():

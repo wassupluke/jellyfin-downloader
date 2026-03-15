@@ -9,6 +9,7 @@ RUN apt update && apt install -y ffmpeg curl && apt clean
 
 # Create a safe cache directory for yt-dlp
 RUN mkdir -p /app/cache && chown -R 1000:1000 /app/cache
+RUN mkdir -p /app/data && chown -R 1000:1000 /app/data
 
 # Copy Python dependencies and install them
 COPY requirements.txt ./
