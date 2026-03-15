@@ -5,7 +5,7 @@ FROM python:3.13-slim
 WORKDIR /app
 
 # Copy the requirements file and install dependencies
-RUN apt update && apt install -y ffmpeg curl && apt clean
+RUN apt update && apt install -y ffmpeg curl unzip && apt clean
 
 # Install deno (required JS runtime for yt-dlp YouTube extraction)
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
