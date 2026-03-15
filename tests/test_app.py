@@ -29,7 +29,6 @@ class TestWatchFromForm:
         form = {
             "name": "My Watch",
             "channel_url": "https://www.youtube.com/@TestChannel",
-            "subfolder": " Highlights ",
             "title_filter": " some regex ",
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
@@ -39,7 +38,6 @@ class TestWatchFromForm:
         result = app_module._watch_from_form(form)
         assert result["name"] == "My Watch"
         assert result["channel_url"] == "https://www.youtube.com/@TestChannel"
-        assert result["subfolder"] == "Highlights"
         assert result["title_filter"] == "some regex"
         assert result["interval_hours"] == 6
         assert result["enabled"] is True
@@ -56,7 +54,6 @@ class TestWatchFromForm:
         }
         result = app_module._watch_from_form(form)
         assert result["enabled"] is False
-        assert result["subfolder"] == ""
 
 
 # ── find_watch ───────────────────────────────────────────────
@@ -109,7 +106,6 @@ class TestLoadWatches:
         assert "channel_url" in result[0]
         assert "playlist_url" not in result[0]
         assert result[0]["channel_url"] == "https://youtube.com/playlist?list=OLD"
-        assert result[0]["subfolder"] == ""
 
 
 class TestSaveWatches:
@@ -144,7 +140,6 @@ class TestWatchesRoutes:
         resp = client.post("/watches/add", data={
             "name": "New",
             "channel_url": "https://www.youtube.com/@NewChannel",
-            "subfolder": "Recaps",
             "title_filter": "",
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
@@ -156,7 +151,6 @@ class TestWatchesRoutes:
         assert len(watches) == 1
         assert watches[0]["name"] == "New"
         assert watches[0]["channel_url"] == "https://www.youtube.com/@NewChannel"
-        assert watches[0]["subfolder"] == "Recaps"
 
     def test_delete_watch(self, client, sample_watch):
         app_module.save_watches([sample_watch])

@@ -84,7 +84,6 @@ def load_watches():
             if "playlist_url" in w and "channel_url" not in w:
                 w["channel_url"] = w.pop("playlist_url")
                 migrated = True
-            w.setdefault("subfolder", "")
         if migrated:
             _save_watches_unlocked(watches)
         return watches
@@ -264,7 +263,6 @@ def _watch_from_form(form):
         "id": str(uuid.uuid4()),
         "name": form["name"],
         "channel_url": form["channel_url"],
-        "subfolder": form.get("subfolder", "").strip(),
         "title_filter": form.get("title_filter", "").strip(),
         "start_date": form["start_date"],
         "end_date": form["end_date"],
@@ -296,7 +294,7 @@ def _run_watch(watch):
         "--remote-components", "ejs:github",
         "--ignore-errors",
         "--no-overwrites",
-        "--output", f"{YOUTUBE_PATH}%(uploader)s/{watch['subfolder'] + '/' if watch.get('subfolder') else ''}%(title)s.%(ext)s",
+        "--output", f"{YOUTUBE_PATH}%(uploader)s/{watch['name']}/%(title)s.%(ext)s",
     ]
 
     title_filter = watch.get("title_filter", "").strip()

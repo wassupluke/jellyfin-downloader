@@ -13,12 +13,6 @@
            placeholder="https://www.youtube.com/@ChannelName"
            value="{{ watch.channel_url if watch else '' }}" required>
 
-    <label for="subfolder">Subfolder</label>
-    <input type="text" name="subfolder" id="subfolder"
-           placeholder="Highlights"
-           value="{{ watch.subfolder if watch else '' }}">
-    <p class="helper">Optional subfolder under the channel name for organizing downloads (e.g. "Highlights", "Race Recaps")</p>
-
     <label for="title_filter">Title must contain</label>
     <input type="text" name="title_filter" id="title_filter"
            placeholder="extended highlights"
