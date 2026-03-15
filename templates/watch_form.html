@@ -2,16 +2,22 @@
 {% set active_page = 'watches' %}
 {% block title %}{{ 'Edit' if watch else 'Add' }} Watch{% endblock %}
 {% block content %}
-<h1>{{ 'Edit' if watch else 'Add' }} Playlist Watch</h1>
+<h1>{{ 'Edit' if watch else 'Add' }} Channel Watch</h1>
 <form method="POST">
     <label for="name">Name</label>
     <input type="text" name="name" id="name" placeholder="Tour de France 2025 Highlights"
            value="{{ watch.name if watch else '' }}" required>
 
-    <label for="playlist_url">Playlist URL</label>
-    <input type="url" name="playlist_url" id="playlist_url"
-           placeholder="https://www.youtube.com/playlist?list=..."
-           value="{{ watch.playlist_url if watch else '' }}" required>
+    <label for="channel_url">Channel URL</label>
+    <input type="url" name="channel_url" id="channel_url"
+           placeholder="https://www.youtube.com/@ChannelName"
+           value="{{ watch.channel_url if watch else '' }}" required>
+
+    <label for="subfolder">Subfolder</label>
+    <input type="text" name="subfolder" id="subfolder"
+           placeholder="Highlights"
+           value="{{ watch.subfolder if watch else '' }}">
+    <p class="helper">Optional subfolder under the channel name for organizing downloads (e.g. "Highlights", "Race Recaps")</p>
 
     <label for="title_filter">Title must contain</label>
     <input type="text" name="title_filter" id="title_filter"

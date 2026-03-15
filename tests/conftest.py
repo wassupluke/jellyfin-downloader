@@ -29,7 +29,8 @@ def sample_watch():
     return {
         "id": "test-id-123",
         "name": "Test Watch",
-        "playlist_url": "https://youtube.com/playlist?list=TEST",
+        "channel_url": "https://www.youtube.com/@TestChannel",
+        "subfolder": "",
         "title_filter": "test.*",
         "start_date": "2025-01-01",
         "end_date": "2027-12-31",

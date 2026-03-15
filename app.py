@@ -74,9 +74,20 @@ def load_watches():
         try:
             with open(WATCHES_FILE) as f:
                 content = f.read().strip()
-                return json.loads(content) if content else []
+                watches = json.loads(content) if content else []
         except (json.JSONDecodeError, OSError):
             return []
+
+        # Migrate legacy playlist_url → channel_url
+        migrated = False
+        for w in watches:
+            if "playlist_url" in w and "channel_url" not in w:
+                w["channel_url"] = w.pop("playlist_url")
+                migrated = True
+            w.setdefault("subfolder", "")
+        if migrated:
+            _save_watches_unlocked(watches)
+        return watches
 
 
 def save_watches(watches):
@@ -252,7 +263,8 @@ def _watch_from_form(form):
     return {
         "id": str(uuid.uuid4()),
         "name": form["name"],
-        "playlist_url": form["playlist_url"],
+        "channel_url": form["channel_url"],
+        "subfolder": form.get("subfolder", "").strip(),
         "title_filter": form.get("title_filter", "").strip(),
         "start_date": form["start_date"],
         "end_date": form["end_date"],
@@ -284,7 +296,7 @@ def _run_watch(watch):
         "--remote-components", "ejs:github",
         "--ignore-errors",
         "--no-overwrites",
-        "--output", f"{YOUTUBE_PATH}%(uploader)s/%(playlist_title)s/%(title)s.%(ext)s",
+        "--output", f"{YOUTUBE_PATH}%(uploader)s/{watch['subfolder'] + '/' if watch.get('subfolder') else ''}%(title)s.%(ext)s",
     ]
 
     title_filter = watch.get("title_filter", "").strip()
@@ -292,7 +304,7 @@ def _run_watch(watch):
         args += ["--match-title", title_filter]
 
     print(f"[scheduler] running watch '{watch['name']}'", flush=True)
-    success = run_ytdlp(watch["playlist_url"], args)
+    success = run_ytdlp(watch["channel_url"], args)
     if success:
         trigger_jellyfin_scan()
 

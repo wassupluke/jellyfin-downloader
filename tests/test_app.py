@@ -28,7 +28,8 @@ class TestWatchFromForm:
     def test_basic_conversion(self):
         form = {
             "name": "My Watch",
-            "playlist_url": "https://youtube.com/playlist?list=X",
+            "channel_url": "https://www.youtube.com/@TestChannel",
+            "subfolder": " Highlights ",
             "title_filter": " some regex ",
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
@@ -37,6 +38,8 @@ class TestWatchFromForm:
         }
         result = app_module._watch_from_form(form)
         assert result["name"] == "My Watch"
+        assert result["channel_url"] == "https://www.youtube.com/@TestChannel"
+        assert result["subfolder"] == "Highlights"
         assert result["title_filter"] == "some regex"
         assert result["interval_hours"] == 6
         assert result["enabled"] is True
@@ -46,13 +49,14 @@ class TestWatchFromForm:
     def test_disabled_when_missing(self):
         form = {
             "name": "W",
-            "playlist_url": "url",
+            "channel_url": "https://www.youtube.com/@TestChannel",
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
             "interval_hours": "4",
         }
         result = app_module._watch_from_form(form)
         assert result["enabled"] is False
+        assert result["subfolder"] == ""
 
 
 # ── find_watch ───────────────────────────────────────────────
@@ -87,6 +91,26 @@ class TestLoadWatches:
             f.write("{bad json!!")
         assert app_module.load_watches() == []
 
+    def test_migrates_playlist_url_to_channel_url(self, tmp_watches_file):
+        legacy = {
+            "id": "old-1",
+            "name": "Legacy",
+            "playlist_url": "https://youtube.com/playlist?list=OLD",
+            "title_filter": "",
+            "start_date": "2025-01-01",
+            "end_date": "2025-12-31",
+            "interval_hours": 4,
+            "enabled": True,
+            "last_run": None,
+        }
+        with open(tmp_watches_file, "w") as f:
+            json.dump([legacy], f)
+        result = app_module.load_watches()
+        assert "channel_url" in result[0]
+        assert "playlist_url" not in result[0]
+        assert result[0]["channel_url"] == "https://youtube.com/playlist?list=OLD"
+        assert result[0]["subfolder"] == ""
+
 
 class TestSaveWatches:
     def test_writes_valid_json(self, tmp_watches_file, sample_watch):
@@ -119,7 +143,8 @@ class TestWatchesRoutes:
     def test_add_watch(self, client):
         resp = client.post("/watches/add", data={
             "name": "New",
-            "playlist_url": "https://youtube.com/playlist?list=X",
+            "channel_url": "https://www.youtube.com/@NewChannel",
+            "subfolder": "Recaps",
             "title_filter": "",
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
@@ -130,6 +155,8 @@ class TestWatchesRoutes:
         watches = app_module.load_watches()
         assert len(watches) == 1
         assert watches[0]["name"] == "New"
+        assert watches[0]["channel_url"] == "https://www.youtube.com/@NewChannel"
+        assert watches[0]["subfolder"] == "Recaps"
 
     def test_delete_watch(self, client, sample_watch):
         app_module.save_watches([sample_watch])
