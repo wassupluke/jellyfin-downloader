@@ -293,7 +293,6 @@ def _run_watch(watch):
         "--embed-subs",
         "--sub-langs", "en,en-US",
         "--remote-components", "ejs:github",
-        "--match-filter", "original_url!*=/shorts/ & url!*=/shorts/",
         "--ignore-errors",
         "--no-overwrites",
         "--output", f"{YOUTUBE_PATH}%(uploader)s/{watch['name']}/%(title)s.%(ext)s",
@@ -309,8 +308,12 @@ def _run_watch(watch):
     if title_exclude:
         args += ["--reject-title", title_exclude]
 
+    url = watch["channel_url"].rstrip("/")
+    if re.search(r"youtube\.com/@[^/]+$", url):
+        url += "/videos"
+
     print(f"[scheduler] running watch '{watch['name']}'", flush=True)
-    success = run_ytdlp(watch["channel_url"], args)
+    success = run_ytdlp(url, args)
     if success:
         trigger_jellyfin_scan()
 
