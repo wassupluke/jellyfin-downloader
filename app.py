@@ -301,7 +301,9 @@ def _run_watch(watch):
 
     title_filter = watch.get("title_filter", "").strip()
     if title_filter:
-        args += ["--match-title", title_filter]
+        words = title_filter.split()
+        pattern = "".join(f"(?=.*{re.escape(w)})" for w in words)
+        args += ["--match-title", pattern]
 
     title_exclude = watch.get("title_exclude", "").strip()
     if title_exclude:
