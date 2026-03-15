@@ -19,6 +19,12 @@
            value="{{ watch.title_filter if watch else '' }}">
     <p class="helper">Leave blank to download all videos. Examples: "extended highlights", "race recap"</p>
 
+    <label for="title_exclude">Title must not contain</label>
+    <input type="text" name="title_exclude" id="title_exclude"
+           placeholder="F2|F3"
+           value="{{ watch.title_exclude if watch else '' }}">
+    <p class="helper">Regex pattern to exclude. Use | to separate terms. Example: "F2|F3|behind the scenes"</p>
+
     <label for="start_date">Start Date</label>
     <input type="date" name="start_date" id="start_date"
            value="{{ watch.start_date if watch else '' }}" required>

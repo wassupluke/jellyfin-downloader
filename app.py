@@ -264,6 +264,7 @@ def _watch_from_form(form):
         "name": form["name"],
         "channel_url": form["channel_url"],
         "title_filter": form.get("title_filter", "").strip(),
+        "title_exclude": form.get("title_exclude", "").strip(),
         "start_date": form["start_date"],
         "end_date": form["end_date"],
         "interval_hours": int(form["interval_hours"]),
@@ -292,6 +293,7 @@ def _run_watch(watch):
         "--embed-subs",
         "--sub-langs", "en,en-US",
         "--remote-components", "ejs:github",
+        "--match-filter", "original_url!*=/shorts/ & url!*=/shorts/",
         "--ignore-errors",
         "--no-overwrites",
         "--output", f"{YOUTUBE_PATH}%(uploader)s/{watch['name']}/%(title)s.%(ext)s",
@@ -300,6 +302,10 @@ def _run_watch(watch):
     title_filter = watch.get("title_filter", "").strip()
     if title_filter:
         args += ["--match-title", title_filter]
+
+    title_exclude = watch.get("title_exclude", "").strip()
+    if title_exclude:
+        args += ["--reject-title", title_exclude]
 
     print(f"[scheduler] running watch '{watch['name']}'", flush=True)
     success = run_ytdlp(watch["channel_url"], args)

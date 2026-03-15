@@ -30,6 +30,7 @@ class TestWatchFromForm:
             "name": "My Watch",
             "channel_url": "https://www.youtube.com/@TestChannel",
             "title_filter": " some regex ",
+            "title_exclude": " F2|F3 ",
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
             "interval_hours": "6",
@@ -39,6 +40,7 @@ class TestWatchFromForm:
         assert result["name"] == "My Watch"
         assert result["channel_url"] == "https://www.youtube.com/@TestChannel"
         assert result["title_filter"] == "some regex"
+        assert result["title_exclude"] == "F2|F3"
         assert result["interval_hours"] == 6
         assert result["enabled"] is True
         assert result["last_run"] is None
@@ -54,6 +56,7 @@ class TestWatchFromForm:
         }
         result = app_module._watch_from_form(form)
         assert result["enabled"] is False
+        assert result["title_exclude"] == ""
 
 
 # ── find_watch ───────────────────────────────────────────────

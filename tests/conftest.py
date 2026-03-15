@@ -31,6 +31,7 @@ def sample_watch():
         "name": "Test Watch",
         "channel_url": "https://www.youtube.com/@TestChannel",
         "title_filter": "test.*",
+        "title_exclude": "",
         "start_date": "2025-01-01",
         "end_date": "2027-12-31",
         "interval_hours": 4,
