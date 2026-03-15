@@ -7,6 +7,9 @@ WORKDIR /app
 # Copy the requirements file and install dependencies
 RUN apt update && apt install -y ffmpeg curl && apt clean
 
+# Install deno (required JS runtime for yt-dlp YouTube extraction)
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
+
 # Create a safe cache directory for yt-dlp
 RUN mkdir -p /app/cache && chown -R 1000:1000 /app/cache
 RUN mkdir -p /app/data && chown -R 1000:1000 /app/data
