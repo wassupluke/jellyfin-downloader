@@ -9,7 +9,7 @@ from collections import deque
 from datetime import date, datetime, timezone
 
 import requests
-from flask import Flask, Response, redirect, render_template, request, url_for
+from flask import Flask, Response, jsonify, redirect, render_template, request, url_for
 
 app = Flask(__name__)
 
@@ -27,6 +27,9 @@ WATCHES_LOCK = threading.Lock()
 
 _jobs = {}
 _jobs_lock = threading.Lock()
+
+_watch_jobs = {}   # watch_id -> job_id, for currently-running watch jobs
+_watch_jobs_lock = threading.Lock()
 
 # ── Shared helpers ──────────────────────────────────────────────
 
@@ -252,10 +255,28 @@ def watches_run(watch_id):
     watches = load_watches()
     watch = find_watch(watches, watch_id)
     if watch:
-        _run_watch(watch)
+        job_id = str(uuid.uuid4())
+        _jobs[job_id] = {
+            "status": "running",
+            "progress": 0,
+            "log": deque(maxlen=50),
+            "title": "",
+        }
+        with _watch_jobs_lock:
+            _watch_jobs[watch["id"]] = job_id
+        threading.Thread(
+            target=_run_watch, args=(watch,), kwargs={"job_id": job_id}, daemon=True
+        ).start()
         watch["last_run"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         save_watches(watches)
-    return redirect(url_for("watches_list"))
+        return jsonify({"job_id": job_id})
+    return jsonify({"job_id": None})
+
+
+@app.route("/watches/running")
+def watches_running():
+    with _watch_jobs_lock:
+        return jsonify(dict(_watch_jobs))
 
 
 def _watch_from_form(form):
@@ -275,8 +296,12 @@ def _watch_from_form(form):
 
 # ── Watch execution ─────────────────────────────────────────────
 
-def _run_watch(watch):
-    """Execute yt-dlp for a single watch."""
+def _run_watch(watch, job_id=None):
+    """Execute yt-dlp for a single watch.
+
+    If job_id is provided, streams output to _jobs[job_id] via Popen.
+    Otherwise (scheduler path), calls run_ytdlp synchronously.
+    """
     os.makedirs(ARCHIVES_DIR, exist_ok=True)
     archive_file = os.path.join(ARCHIVES_DIR, f"{watch['id']}.txt")
 
@@ -313,9 +338,40 @@ def _run_watch(watch):
         url += "/videos"
 
     print(f"[scheduler] running watch '{watch['name']}'", flush=True)
-    success = run_ytdlp(url, args)
-    if success:
-        trigger_jellyfin_scan()
+
+    if job_id is not None:
+        job = _jobs[job_id]
+        try:
+            cmd = ["yt-dlp", "--newline"] + args + [url]
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, bufsize=1,
+            )
+            for line in proc.stdout:
+                line = line.rstrip("\n")
+                job["log"].append(line)
+                pct = _parse_progress(line)
+                if pct is not None:
+                    job["progress"] = pct
+                if line.startswith("[info]") and ":" in line and not job["title"]:
+                    job["title"] = line.split(":", 1)[1].strip()[:120]
+            proc.wait()
+            if proc.returncode == 0:
+                job["status"] = "done"
+                job["progress"] = 100
+                trigger_jellyfin_scan()
+            else:
+                job["status"] = "error"
+        except Exception as e:
+            job["log"].append(f"ERROR: {e}")
+            job["status"] = "error"
+        finally:
+            with _watch_jobs_lock:
+                _watch_jobs.pop(watch["id"], None)
+    else:
+        success = run_ytdlp(url, args)
+        if success:
+            trigger_jellyfin_scan()
 
 
 # ── Background scheduler ────────────────────────────────────────

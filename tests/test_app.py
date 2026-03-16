@@ -161,13 +161,161 @@ class TestWatchesRoutes:
         assert resp.status_code == 302
         assert app_module.load_watches() == []
 
-    def test_run_watch(self, client, sample_watch):
+    def test_run_watch_returns_json_job_id(self, client, sample_watch):
         app_module.save_watches([sample_watch])
         with patch.object(app_module, "_run_watch"):
             resp = client.post(f"/watches/{sample_watch['id']}/run")
-        assert resp.status_code == 302
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "job_id" in data
+
+    def test_run_watch_updates_last_run(self, client, sample_watch):
+        app_module.save_watches([sample_watch])
+        with patch.object(app_module, "_run_watch"):
+            client.post(f"/watches/{sample_watch['id']}/run")
         watches = app_module.load_watches()
         assert watches[0]["last_run"] is not None
+
+    def test_run_watch_populates_watch_jobs(self, client, sample_watch):
+        """_watch_jobs should be populated (and cleaned up after thread finishes)."""
+        import threading
+        app_module.save_watches([sample_watch])
+        event = threading.Event()
+
+        def slow_run_watch(watch, job_id=None):
+            event.wait()  # block until test checks state
+
+        with patch.object(app_module, "_run_watch", side_effect=slow_run_watch):
+            resp = client.post(f"/watches/{sample_watch['id']}/run")
+        data = resp.get_json()
+        job_id = data["job_id"]
+        # The spawned thread is blocked; _watch_jobs should contain the entry
+        with app_module._watch_jobs_lock:
+            assert app_module._watch_jobs.get(sample_watch["id"]) == job_id
+        event.set()  # release the thread
+
+    def test_watches_running_endpoint(self, client, sample_watch):
+        app_module.save_watches([sample_watch])
+        import threading
+        event = threading.Event()
+
+        def slow_run_watch(watch, job_id=None):
+            event.wait()
+
+        with patch.object(app_module, "_run_watch", side_effect=slow_run_watch):
+            resp = client.post(f"/watches/{sample_watch['id']}/run")
+        job_id = resp.get_json()["job_id"]
+
+        running_resp = client.get("/watches/running")
+        assert running_resp.status_code == 200
+        running = running_resp.get_json()
+        assert running.get(sample_watch["id"]) == job_id
+        event.set()
+
+    def test_run_watch_nonexistent_watch(self, client):
+        resp = client.post("/watches/nonexistent-id/run")
+        # Should still return 200 with no job created (watch not found)
+        assert resp.status_code == 200
+
+
+class TestRunWatchWithJobId:
+    """Tests for _run_watch(watch, job_id=...) Popen path."""
+
+    def _make_watch(self):
+        return {
+            "id": "w-1",
+            "name": "Test Watch",
+            "channel_url": "https://www.youtube.com/@TestChannel",
+            "title_filter": "",
+            "title_exclude": "",
+            "start_date": "2025-01-01",
+            "end_date": "2027-12-31",
+            "interval_hours": 4,
+            "enabled": True,
+            "last_run": None,
+        }
+
+    def _make_job(self):
+        from collections import deque
+        return {"status": "running", "progress": 0, "log": deque(maxlen=50), "title": ""}
+
+    def test_success_sets_done_status(self, tmp_path):
+        watch = self._make_watch()
+        job_id = "job-success"
+        app_module._jobs[job_id] = self._make_job()
+        # Ensure _watch_jobs has the entry so cleanup can run
+        app_module._watch_jobs[watch["id"]] = job_id
+
+        mock_proc = MagicMock()
+        mock_proc.stdout = iter(["[download]  50.0% of 100MiB\n", "[info] title: Some Video\n"])
+        mock_proc.returncode = 0
+        mock_proc.wait.return_value = None
+
+        with patch("app.subprocess.Popen", return_value=mock_proc), \
+             patch.object(app_module, "trigger_jellyfin_scan") as mock_scan, \
+             patch.object(app_module, "ARCHIVES_DIR", str(tmp_path)):
+            app_module._run_watch(watch, job_id=job_id)
+
+        job = app_module._jobs[job_id]
+        assert job["status"] == "done"
+        assert job["progress"] == 100
+        mock_scan.assert_called_once()
+        # Cleaned up from _watch_jobs
+        with app_module._watch_jobs_lock:
+            assert watch["id"] not in app_module._watch_jobs
+
+    def test_failure_sets_error_status(self, tmp_path):
+        watch = self._make_watch()
+        watch["id"] = "w-2"
+        job_id = "job-failure"
+        app_module._jobs[job_id] = self._make_job()
+        app_module._watch_jobs[watch["id"]] = job_id
+
+        mock_proc = MagicMock()
+        mock_proc.stdout = iter([])
+        mock_proc.returncode = 1
+        mock_proc.wait.return_value = None
+
+        with patch("app.subprocess.Popen", return_value=mock_proc), \
+             patch.object(app_module, "trigger_jellyfin_scan") as mock_scan, \
+             patch.object(app_module, "ARCHIVES_DIR", str(tmp_path)):
+            app_module._run_watch(watch, job_id=job_id)
+
+        job = app_module._jobs[job_id]
+        assert job["status"] == "error"
+        mock_scan.assert_not_called()
+        with app_module._watch_jobs_lock:
+            assert watch["id"] not in app_module._watch_jobs
+
+    def test_exception_sets_error_status(self, tmp_path):
+        watch = self._make_watch()
+        watch["id"] = "w-3"
+        job_id = "job-exception"
+        app_module._jobs[job_id] = self._make_job()
+        app_module._watch_jobs[watch["id"]] = job_id
+
+        with patch("app.subprocess.Popen", side_effect=Exception("boom")), \
+             patch.object(app_module, "ARCHIVES_DIR", str(tmp_path)):
+            app_module._run_watch(watch, job_id=job_id)
+
+        job = app_module._jobs[job_id]
+        assert job["status"] == "error"
+        assert any("boom" in line for line in job["log"])
+        with app_module._watch_jobs_lock:
+            assert watch["id"] not in app_module._watch_jobs
+
+    def test_no_job_id_uses_run_ytdlp(self, tmp_path):
+        """Scheduler path (job_id=None) should call run_ytdlp, not Popen."""
+        watch = self._make_watch()
+        watch["id"] = "w-4"
+
+        with patch.object(app_module, "run_ytdlp", return_value=True) as mock_run, \
+             patch.object(app_module, "trigger_jellyfin_scan") as mock_scan, \
+             patch.object(app_module, "ARCHIVES_DIR", str(tmp_path)):
+            app_module._run_watch(watch)
+
+        mock_run.assert_called_once()
+        mock_scan.assert_called_once()
 
 
 # ── Scheduler logic ──────────────────────────────────────────
