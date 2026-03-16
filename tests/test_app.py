@@ -244,7 +244,8 @@ class TestRunWatchWithJobId:
         job_id = "job-success"
         app_module._jobs[job_id] = self._make_job()
         # Ensure _watch_jobs has the entry so cleanup can run
-        app_module._watch_jobs[watch["id"]] = job_id
+        with app_module._watch_jobs_lock:
+            app_module._watch_jobs[watch["id"]] = job_id
 
         mock_proc = MagicMock()
         mock_proc.stdout = iter(["[download]  50.0% of 100MiB\n", "[info] title: Some Video\n"])
@@ -269,7 +270,8 @@ class TestRunWatchWithJobId:
         watch["id"] = "w-2"
         job_id = "job-failure"
         app_module._jobs[job_id] = self._make_job()
-        app_module._watch_jobs[watch["id"]] = job_id
+        with app_module._watch_jobs_lock:
+            app_module._watch_jobs[watch["id"]] = job_id
 
         mock_proc = MagicMock()
         mock_proc.stdout = iter([])
@@ -292,7 +294,8 @@ class TestRunWatchWithJobId:
         watch["id"] = "w-3"
         job_id = "job-exception"
         app_module._jobs[job_id] = self._make_job()
-        app_module._watch_jobs[watch["id"]] = job_id
+        with app_module._watch_jobs_lock:
+            app_module._watch_jobs[watch["id"]] = job_id
 
         with patch("app.subprocess.Popen", side_effect=Exception("boom")), \
              patch.object(app_module, "ARCHIVES_DIR", str(tmp_path)):

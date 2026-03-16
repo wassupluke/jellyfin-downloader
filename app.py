@@ -256,12 +256,13 @@ def watches_run(watch_id):
     watch = find_watch(watches, watch_id)
     if watch:
         job_id = str(uuid.uuid4())
-        _jobs[job_id] = {
-            "status": "running",
-            "progress": 0,
-            "log": deque(maxlen=50),
-            "title": "",
-        }
+        with _jobs_lock:
+            _jobs[job_id] = {
+                "status": "running",
+                "progress": 0,
+                "log": deque(maxlen=50),
+                "title": "",
+            }
         with _watch_jobs_lock:
             _watch_jobs[watch["id"]] = job_id
         threading.Thread(
