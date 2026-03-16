@@ -11,10 +11,6 @@ services:
       - type: bind
         source: /mnt/ceph-videos/YouTube
         target: /mnt/ceph-videos/YouTube
-      - type: bind
-        source: /home/wassu/jellyfin-downloader/download-archive.txt
-        target: /app/download-archive.txt
       - ./data:/app/data
       - ./archives:/app/archives
-    restart:
-      unless-stopped
+    restart: unless-stopped

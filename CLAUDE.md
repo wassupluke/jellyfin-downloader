@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-YouTube video downloader with Jellyfin media server integration. Two modes:
-- **Web UI** (`app.py`): Flask app on port 5000 for manual URL downloads. Uses yt-dlp with config from `app/yt-dlp.conf`. After download, triggers a Jellyfin library scan via API.
-- **Auto downloader** (`autodownloader.sh`): Cron-scheduled bash script that monitors a YouTube playlist, downloads new matching videos (by title regex + date filter), and tracks already-downloaded videos in `download-archive.txt`.
+YouTube video downloader with Jellyfin media server integration. Single Flask app (`app.py`) with two functional areas:
+
+- **Manual download** (`/`): Submit a YouTube URL, yt-dlp runs in a background thread, progress is streamed to the browser via SSE (`/progress/<job_id>/stream`).
+- **Watches** (`/watches`): CRUD UI for scheduled channel monitors. A background scheduler thread checks every 5 minutes and runs yt-dlp for any enabled watch whose `interval_hours` cooldown has elapsed.
 
 ## Commands
 
@@ -15,22 +16,36 @@ YouTube video downloader with Jellyfin media server integration. Two modes:
 pip install -r requirements.txt
 python app.py
 
+# Run tests
+pytest tests/ -v
+
+# Run a single test class
+pytest tests/test_app.py::TestWatchesRoutes -v
+
 # Docker (production)
 docker compose build
 docker compose up -d
 ```
 
-No test suite or linter is configured.
-
 ## Architecture
 
-- `app.py` — Single-route Flask app (GET shows form, POST downloads URL via `os.system` → yt-dlp, then POSTs to Jellyfin API)
-- `autodownloader.sh` — Standalone script with its own yt-dlp options (separate from `app/yt-dlp.conf`)
-- `templates/` — Jinja2 templates: `download.html` (form), `result.html` (status)
-- `app/yt-dlp.conf` — yt-dlp config for the web UI downloads only
+All logic lives in `app.py`. Key globals:
+
+- `_jobs` — in-memory dict of active/completed download jobs (keyed by UUID), each with `status`, `progress`, `log` (deque), and `title`.
+- `WATCHES_FILE` — `/app/data/watches.json` persists the list of Watch configs.
+- `ARCHIVES_DIR` — `/app/archives/`, one `<watch_id>.txt` per watch for yt-dlp's `--download-archive`.
+
+The scheduler (`_scheduler_loop`) runs as a daemon thread started at app launch. It does not use cron.
+
+Watch fields: `id`, `name`, `channel_url`, `title_filter`, `title_exclude`, `start_date`, `end_date`, `interval_hours`, `enabled`, `last_run`.
+
+`load_watches()` auto-migrates legacy `playlist_url` → `channel_url` on read.
+
+For `@channel` URLs (no trailing path), `_run_watch` appends `/videos` to avoid downloading Shorts from the channel home tab.
 
 ## Configuration
 
-- `.env` — Must contain `JELLYFIN_TOKEN` (Jellyfin API key)
-- Hardcoded values in `app.py`: Jellyfin URL (`http://192.168.5.39:8096`), output path (`/mnt/ceph-videos/YouTube/`)
-- `autodownloader.sh` has its own hardcoded playlist URL, title match regex, and output directory
+- `.env` — Must contain `JELLYFIN_TOKEN`
+- Hardcoded in `app.py`: `JELLYFIN_URL` (`http://192.168.5.39:8096`), `YOUTUBE_PATH` (`/mnt/ceph-videos/YouTube/`)
+- `yt-dlp.conf` (repo root) — used by manual downloads via `--config-locations /app/yt-dlp.conf`
+- Watch-triggered downloads pass yt-dlp flags directly in `_run_watch()`, not via the config file
