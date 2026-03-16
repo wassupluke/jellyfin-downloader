@@ -13,8 +13,8 @@ YouTube video downloader with Jellyfin media server integration. Single Flask ap
 
 ```bash
 # Run locally
-pip install -r requirements.txt
-python app.py
+uv pip install -r requirements.txt
+uv run app.py
 
 # Run tests
 pytest tests/ -v
