@@ -384,3 +384,13 @@ class TestTriggerJellyfinScan:
     def test_handles_exception(self):
         with patch("app.requests.post", side_effect=Exception("timeout")):
             app_module.trigger_jellyfin_scan()  # should not raise
+
+
+class TestWatchesHtml:
+    def test_markup_present(self, client, sample_watch):
+        app_module.save_watches([sample_watch])
+        resp = client.get("/watches")
+        assert resp.status_code == 200
+        assert b'watch-cards' in resp.data
+        assert b'run-btn' in resp.data
+        assert b'watch-progress' in resp.data
