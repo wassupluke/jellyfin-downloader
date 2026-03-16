@@ -344,7 +344,7 @@ def _run_watch(watch, job_id=None):
         job = _jobs[job_id]
         try:
             cmd = ["yt-dlp", "--newline"] + args + [url]
-            proc = subprocess.Popen(
+            proc = subprocess.Popen(  # noqa: S603
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, bufsize=1,
             )

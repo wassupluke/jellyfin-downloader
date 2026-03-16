@@ -221,6 +221,23 @@ class TestWatchesRoutes:
 class TestRunWatchWithJobId:
     """Tests for _run_watch(watch, job_id=...) Popen path."""
 
+    @pytest.fixture(autouse=True)
+    def _clean_jobs_state(self):
+        old_jobs = dict(app_module._jobs)
+        with app_module._watch_jobs_lock:
+            old_watch_jobs = dict(app_module._watch_jobs)
+        try:
+            app_module._jobs.clear()
+            with app_module._watch_jobs_lock:
+                app_module._watch_jobs.clear()
+            yield
+        finally:
+            app_module._jobs.clear()
+            app_module._jobs.update(old_jobs)
+            with app_module._watch_jobs_lock:
+                app_module._watch_jobs.clear()
+                app_module._watch_jobs.update(old_watch_jobs)
+
     def _make_watch(self):
         return {
             "id": "w-1",
@@ -319,6 +336,8 @@ class TestRunWatchWithJobId:
 
         mock_run.assert_called_once()
         mock_scan.assert_called_once()
+        with app_module._watch_jobs_lock:
+            assert watch["id"] not in app_module._watch_jobs
 
 
 # ── Scheduler logic ──────────────────────────────────────────
@@ -394,3 +413,6 @@ class TestWatchesHtml:
         assert b'watch-cards' in resp.data
         assert b'run-btn' in resp.data
         assert b'watch-progress' in resp.data
+        assert b'data-watch-id' in resp.data
+        assert b'watch-prog-bar' in resp.data
+        assert b'watch-prog-title' in resp.data

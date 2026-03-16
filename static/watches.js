@@ -15,6 +15,12 @@ window.addEventListener("beforeunload", () =>
 );
 
 function startWatchProgress(watchId, jobId) {
+  if (!jobId) {
+    document
+      .querySelectorAll('.run-btn[data-watch-id="' + watchId + '"]')
+      .forEach((btn) => (btn.disabled = false));
+    return;
+  }
   document
     .querySelectorAll('.watch-progress[data-watch-id="' + watchId + '"]')
     .forEach((el) => (el.style.display = "block"));
@@ -48,7 +54,8 @@ function startWatchProgress(watchId, jobId) {
       });
     if (d.status === "done" || d.status === "error") {
       es.close();
-      _openStreams.splice(_openStreams.indexOf(es), 1);
+      const doneIdx = _openStreams.indexOf(es);
+      if (doneIdx !== -1) _openStreams.splice(doneIdx, 1);
       document
         .querySelectorAll('.run-btn[data-watch-id="' + watchId + '"]')
         .forEach((btn) => (btn.disabled = false));
@@ -64,7 +71,8 @@ function startWatchProgress(watchId, jobId) {
   };
   es.onerror = function () {
     es.close();
-    _openStreams.splice(_openStreams.indexOf(es), 1);
+    const errIdx = _openStreams.indexOf(es);
+    if (errIdx !== -1) _openStreams.splice(errIdx, 1);
     document
       .querySelectorAll('.run-btn[data-watch-id="' + watchId + '"]')
       .forEach((btn) => (btn.disabled = false));
