@@ -1,0 +1,46 @@
+.watch-cards {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  table {
+    display: none;
+  }
+  .watch-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .watch-card {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .watch-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .watch-card-meta {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  .watch-card-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .watch-card-actions .btn {
+    flex: 1;
+    text-align: center;
+  }
+  .watch-card-actions form {
+    flex: 1;
+    display: flex;
+  }
+  .watch-card-actions form .btn {
+    flex: 1;
+  }
+}
