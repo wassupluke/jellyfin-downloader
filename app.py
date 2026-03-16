@@ -16,7 +16,7 @@ app = Flask(__name__)
 JELLYFIN_TOKEN = os.environ.get("JELLYFIN_TOKEN")
 JELLYFIN_URL = "http://192.168.5.39:8096"
 YOUTUBE_PATH = "/mnt/ceph-videos/YouTube/"
-WATCHES_FILE = "/app/watches.json"
+WATCHES_FILE = "/app/data/watches.json"
 ARCHIVES_DIR = "/app/archives"
 WATCHES_LOCK = threading.Lock()
 
@@ -74,9 +74,19 @@ def load_watches():
         try:
             with open(WATCHES_FILE) as f:
                 content = f.read().strip()
-                return json.loads(content) if content else []
+                watches = json.loads(content) if content else []
         except (json.JSONDecodeError, OSError):
             return []
+
+        # Migrate legacy playlist_url → channel_url
+        migrated = False
+        for w in watches:
+            if "playlist_url" in w and "channel_url" not in w:
+                w["channel_url"] = w.pop("playlist_url")
+                migrated = True
+        if migrated:
+            _save_watches_unlocked(watches)
+        return watches
 
 
 def save_watches(watches):
@@ -252,8 +262,9 @@ def _watch_from_form(form):
     return {
         "id": str(uuid.uuid4()),
         "name": form["name"],
-        "playlist_url": form["playlist_url"],
+        "channel_url": form["channel_url"],
         "title_filter": form.get("title_filter", "").strip(),
+        "title_exclude": form.get("title_exclude", "").strip(),
         "start_date": form["start_date"],
         "end_date": form["end_date"],
         "interval_hours": int(form["interval_hours"]),
@@ -281,17 +292,28 @@ def _run_watch(watch):
         "--embed-thumbnail",
         "--embed-subs",
         "--sub-langs", "en,en-US",
+        "--remote-components", "ejs:github",
         "--ignore-errors",
         "--no-overwrites",
-        "--output", f"{YOUTUBE_PATH}%(uploader)s/%(playlist_title)s/%(title)s.%(ext)s",
+        "--output", f"{YOUTUBE_PATH}%(uploader)s/{watch['name']}/%(title)s.%(ext)s",
     ]
 
     title_filter = watch.get("title_filter", "").strip()
     if title_filter:
-        args += ["--match-title", title_filter]
+        words = title_filter.split()
+        pattern = "".join(f"(?=.*{re.escape(w)})" for w in words)
+        args += ["--match-title", pattern]
+
+    title_exclude = watch.get("title_exclude", "").strip()
+    if title_exclude:
+        args += ["--reject-title", title_exclude]
+
+    url = watch["channel_url"].rstrip("/")
+    if re.search(r"youtube\.com/@[^/]+$", url):
+        url += "/videos"
 
     print(f"[scheduler] running watch '{watch['name']}'", flush=True)
-    success = run_ytdlp(watch["playlist_url"], args)
+    success = run_ytdlp(url, args)
     if success:
         trigger_jellyfin_scan()
 
@@ -304,8 +326,8 @@ def _scheduler_loop():
         time.sleep(300)  # check every 5 minutes
         try:
             watches = load_watches()
-            now = datetime.now()
-            today = date.today().isoformat()
+            now = datetime.now(timezone.utc)
+            today = now.date().isoformat()
             changed = False
 
             for watch in watches:
@@ -318,6 +340,8 @@ def _scheduler_loop():
                 if last_run:
                     try:
                         last_run_dt = datetime.fromisoformat(last_run)
+                        if last_run_dt.tzinfo is None:
+                            last_run_dt = last_run_dt.astimezone(timezone.utc)
                     except (TypeError, ValueError):
                         last_run_dt = None
                     if last_run_dt is not None:
@@ -333,7 +357,8 @@ def _scheduler_loop():
                 save_watches(watches)
 
         except Exception as e:
-            print(f"[scheduler] error: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
 
 
 def start_scheduler():

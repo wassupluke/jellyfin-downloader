@@ -2,22 +2,28 @@
 {% set active_page = 'watches' %}
 {% block title %}{{ 'Edit' if watch else 'Add' }} Watch{% endblock %}
 {% block content %}
-<h1>{{ 'Edit' if watch else 'Add' }} Playlist Watch</h1>
+<h1>{{ 'Edit' if watch else 'Add' }} Channel Watch</h1>
 <form method="POST">
     <label for="name">Name</label>
     <input type="text" name="name" id="name" placeholder="Tour de France 2025 Highlights"
            value="{{ watch.name if watch else '' }}" required>
 
-    <label for="playlist_url">Playlist URL</label>
-    <input type="url" name="playlist_url" id="playlist_url"
-           placeholder="https://www.youtube.com/playlist?list=..."
-           value="{{ watch.playlist_url if watch else '' }}" required>
+    <label for="channel_url">Channel URL</label>
+    <input type="url" name="channel_url" id="channel_url"
+           placeholder="https://www.youtube.com/@ChannelName"
+           value="{{ watch.channel_url if watch else '' }}" required>
 
     <label for="title_filter">Title must contain</label>
     <input type="text" name="title_filter" id="title_filter"
            placeholder="extended highlights"
            value="{{ watch.title_filter if watch else '' }}">
-    <p class="helper">Leave blank to download all videos. Examples: "extended highlights", "race recap"</p>
+    <p class="helper">Space-separated words — all must appear in any order. Example: "highlights 2026 grand prix"</p>
+
+    <label for="title_exclude">Title must not contain</label>
+    <input type="text" name="title_exclude" id="title_exclude"
+           placeholder="F2|F3"
+           value="{{ watch.title_exclude if watch else '' }}">
+    <p class="helper">Regex pattern to exclude. Use | to separate terms. Example: "F2|F3|behind the scenes"</p>
 
     <label for="start_date">Start Date</label>
     <input type="date" name="start_date" id="start_date"

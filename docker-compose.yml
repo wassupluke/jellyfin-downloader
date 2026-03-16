@@ -1,7 +1,6 @@
 services:
   flask_app:
     build: .
-    user: "1000:1000"
     ports:
       - "5000:5000"
     environment:
@@ -15,7 +14,7 @@ services:
       - type: bind
         source: /home/wassu/jellyfin-downloader/download-archive.txt
         target: /app/download-archive.txt
-      - ./watches.json:/app/watches.json
+      - ./data:/app/data
       - ./archives:/app/archives
     restart:
       unless-stopped
