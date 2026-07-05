@@ -52,6 +52,14 @@ function startWatchProgress(watchId, jobId) {
       .forEach((el) => {
         if (d.title) el.textContent = d.title;
       });
+    const lastLine = d.log && d.log.length ? d.log[d.log.length - 1] : "";
+    document
+      .querySelectorAll(
+        '.watch-progress[data-watch-id="' + watchId + '"] .watch-prog-status',
+      )
+      .forEach((el) => {
+        el.textContent = lastLine;
+      });
     if (d.status === "done" || d.status === "error") {
       es.close();
       const doneIdx = _openStreams.indexOf(es);

@@ -14,7 +14,7 @@ from flask import Flask, Response, jsonify, redirect, render_template, request, 
 app = Flask(__name__)
 
 JELLYFIN_TOKEN = os.environ.get("JELLYFIN_TOKEN")
-JELLYFIN_URL = "http://192.168.5.39:8096"
+JELLYFIN_URL = "http://192.168.5.100:8096"
 YOUTUBE_PATH = "/mnt/ceph-videos/YouTube/"
 WATCHES_FILE = "/app/data/watches.json"
 ARCHIVES_DIR = "/app/archives"
@@ -306,10 +306,25 @@ def _run_watch(watch, job_id=None):
     os.makedirs(ARCHIVES_DIR, exist_ok=True)
     archive_file = os.path.join(ARCHIVES_DIR, f"{watch['id']}.txt")
 
+    date_start = watch["start_date"].replace("-", "")
+    date_end = watch["end_date"].replace("-", "")
+
     args = [
         "--download-archive", archive_file,
-        "--dateafter", watch["start_date"].replace("-", ""),
-        "--datebefore", watch["end_date"].replace("-", ""),
+        # Channel tabs list newest-first and yt-dlp otherwise pages through a
+        # channel's ENTIRE upload history to apply --dateafter/--datebefore.
+        # --lazy-playlist processes videos as they're found instead of
+        # collecting the full tab first, and --break-match-filters stops the
+        # whole run as soon as a video falls outside the window, so a large
+        # channel's older history is never paginated.
+        "--lazy-playlist",
+        "--break-match-filters", f"upload_date >= {date_start} & upload_date <= {date_end}",
+        # Channel tabs don't expose upload_date on the cheap flat listing, only
+        # the title. When a title_filter is set, yt-dlp rejects non-matching
+        # videos using that cheap data alone and never resolves upload_date,
+        # so the break above never fires. --playlist-end is a hard backstop
+        # bounding how many videos get enumerated in that worst case.
+        "--playlist-end", "300",
         "--write-thumbnail",
         "--format", "bestvideo+bestaudio/best",
         "--merge-output-format", "mp4",
